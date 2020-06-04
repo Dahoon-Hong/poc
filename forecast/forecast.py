@@ -20,7 +20,7 @@ API_FCST_PATH = '/getUltraSrtFcst'
 API_FCST_VILAGE_PATH = '/getVilageFcst'
 
 
-def dfs(data, key_chain=[]):
+def dfs_print_result(data, key_chain=[]):
     if not isinstance(data, dict):
         return
     
@@ -35,6 +35,19 @@ def dfs(data, key_chain=[]):
         else:
             print('%s : [%s]' % (''.join(['[%s]' % k for k in _key_chain]), data[key]))
 
+class Cast:
+    def __init__(self):
+        pass
+
+    def get_list_of_category(self):
+        pass
+    
+    def get_value_of_category(self):
+        pass
+
+class NCAT(Cast):
+    def __init__(self):
+        super.__init__()
 
 queryParams = '?' + "ServiceKey=" + API_KEY +'&'+ parse.urlencode({
     'ServiceKey': API_KEY,
@@ -46,10 +59,10 @@ queryParams = '?' + "ServiceKey=" + API_KEY +'&'+ parse.urlencode({
     'nx': '55',
     'ny': '127'})
 print('REQUEST TO ', API_ENDPOINT + API_FCST_VILAGE_PATH + queryParams)
-response = request.urlopen(API_ENDPOINT + API_FCST_VILAGE_PATH + queryParams).read()
-print(response)
-#response = b'{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"0700","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"0800","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"0900","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"1000","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"1100","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"1200","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"0700","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"0800","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"0900","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"1000","fcstValue":"0","nx":18,"ny":1}]},"pageNo":1,"numOfRows":10,"totalCount":60}}}'
+#response = request.urlopen(API_ENDPOINT + API_FCST_VILAGE_PATH + queryParams).read()
+#print(response)
+response = b'{"response":{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"dataType":"JSON","items":{"item":[{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"0700","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"0800","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"0900","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"1000","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"1100","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"LGT","fcstDate":"20200520","fcstTime":"1200","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"0700","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"0800","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"0900","fcstValue":"0","nx":18,"ny":1},{"baseDate":"20200520","baseTime":"0630","category":"PTY","fcstDate":"20200520","fcstTime":"1000","fcstValue":"0","nx":18,"ny":1}]},"pageNo":1,"numOfRows":10,"totalCount":60}}}'
 result = json.loads(response.decode("UTF-8"))
 
 print('---------------------------')
-dfs(result)
+#dfs_print_result(result)
