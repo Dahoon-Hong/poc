@@ -1,27 +1,46 @@
-import pandas as pd 
+from datetime import date
 
+from stock import StockInformation
+import config
 
+if __name__ == "__main__":
+    stock = StockInformation()
+    code_list = stock.get_code_list()
 
+    for name in config.noi:
+        try:
+            code = code_list[code_list['name'] == name]['code'].item()
+        except ValueError:
+            print("CANNOT FOUND CODE FOR NAME [%s]" % name)
+            continue
 
+        print(code)
+        df = stock.get_stock_information(code, date(2020, 6, 1))
+        print(df)
 
-def get_url(item_name, code_df): 
-    code = code_df[code_df['name'] == item_name]['code']
-    print(code, type(code))
-    url = 'http://finance.naver.com/item/sise_day.nhn?code=%06d' % code
-    return url 
+        # transaction init
+        dfs = df.copy()
+        dfs['buy_stack'] = 0
+        dfs['amount_stack'] = 0
+        dfs['profit'] = 0
 
-code_df = pd.read_html('http://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13', header=0)[0]
-code_df = code_df[['회사명', '종목코드']]
-code_df = code_df.rename(columns={'회사명': 'name', '종목코드': 'code'})
-code_df['code'] = pd.to_numeric(code_df['code'])
-item_name='삼성전자' 
-url = get_url(item_name, code_df)
-df = pd.DataFrame() 
-for page in range(1, 21): 
-    # page당 10일
-    pg_url = '{url}&page={page}'.format(url=url, page=page) 
-    print(pg_url)
-    df = df.append(pd.read_html(pg_url, header=0)[0], ignore_index=True) 
-    df = df.dropna() 
-    print(df)
+        # buy 2020-05-27, 5930, 50000, 10
+        condition = dfs['date'] >= date(2020, 5, 27)
+        dfs.loc[condition, 'buy_stack'] += 50000 * 10
+        dfs.loc[condition, 'amount_stack'] += 10
+        print(dfs)
 
+        # buy 2020-05-27, 5930, 49000, 5
+        condition = dfs['date'] >= date(2020, 5, 27)
+        dfs.loc[condition, 'buy_stack'] += 49000 * 5
+        dfs.loc[condition, 'amount_stack'] += 5
+        print(dfs)
+
+        # buy 2020-05-28, 5930, 50700, 30
+        condition = dfs['date'] >= date(2020, 5, 31)
+        dfs.loc[condition, 'buy_stack'] += 50700 * 30
+        dfs.loc[condition, 'amount_stack'] += 30
+        print(dfs)
+        
+        dfs['profit'] = dfs['closing'] * dfs['amount_stack'] - dfs['buy_stack']
+        print(dfs)
