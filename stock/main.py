@@ -1,27 +1,23 @@
 from datetime import datetime, date
 import pandas as pd
 from stock import StockInformation
+from transaction import Transaction
 import config
 
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+GRAPH = False
 
-
-def buy_stock(df, t_date, amount, total_price):
-    condition = df['date'] >= t_date
-    df.loc[condition, 'buy_stack'] += total_price
-    df.loc[condition, 'amount_stack'] += amount
-
-
-
+if GRAPH:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
 if __name__ == "__main__":
     stock = StockInformation()
     code_list = stock.get_code_list()
 
 #    for name in config.noi:
-    name = '현대자동차'
+    #name = '현대자동차' 
+    name = '삼성전자'
     try:
         code = code_list[code_list['name'] == name]['code'].item()
     except ValueError:
@@ -34,10 +30,8 @@ if __name__ == "__main__":
     print(df)
 
     # transaction init
-    dfs = df.copy()
-    dfs['buy_stack'] = 0
-    dfs['amount_stack'] = 0
-    dfs['profit'] = 0
+    transaction = Transaction(df, name, code)
+ 
     '''
     t_df = pd.read_csv('./res/input/%s.csv'%code, encoding='CP949')
     print(t_df)
@@ -51,24 +45,33 @@ if __name__ == "__main__":
     # buy 2020-05-27, 5930, 50000, 10
     t_df[t_df['category'] == 'buy'].apply(lambda x : buy_stock(dfs, x['date'], x['amount'], x['amount_krw']), axis=1)
     '''
-
-
-    dfs['profit'] = dfs['closing'] * dfs['amount_stack'] - dfs['buy_stack']
+    
+    transaction.update_buy(date(2020, 6, 1), 10, 50000 * 10)
+    transaction.update_sell(date(2020, 6, 3), 7, 49000 * 7)
+    transaction.update_sell(date(2020, 6, 5), 2, 51000 * 2)
+    transaction.update_sell(date(2020, 6, 5), 1, 54000 * 1)
+    dfs = transaction.get_history()
     print(dfs)
 
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(
-        go.Scatter(x=dfs['date'], y=dfs['profit'], mode='lines', name='profit'),
-        secondary_y=False
-    )
-    fig.add_trace(
-        go.Scatter(x=dfs['date'], y=dfs['closing'], mode='lines', name='closing'),
-        secondary_y=True
-    )
-    fig.update_layout(
-        title_text="[%s] profit" % code,
-        yaxis=dict(tickformat=",000"),
-        yaxis2=dict(tickformat=",000"),
-    )
-    fig.update_xaxes(title_text="date")
-    fig.show()
+    if GRAPH:
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(
+            go.Scatter(x=dfs['date'], y=dfs['current_budget'], mode='lines', name='current_budget'),
+            secondary_y=False
+        )
+        fig.add_trace(
+            go.Scatter(x=dfs['date'], y=dfs['realized_profit'], mode='lines', name='realized_profit'),
+            secondary_y=False
+        )
+        fig.add_trace(
+            go.Scatter(x=dfs['date'], y=dfs['closing'], mode='lines', name='closing'),
+            secondary_y=True
+        )
+        
+        fig.update_layout(
+            title_text="[%s] profit" % code,
+            yaxis=dict(tickformat=",000"),
+            yaxis2=dict(tickformat=",000"),
+        )
+        fig.update_xaxes(title_text="date")
+        fig.show()

@@ -68,15 +68,16 @@ class StockInformation:
         df = pd.DataFrame()
         current_date = datetime.utcnow().date()
         url = 'https://finance.naver.com/item/sise_day.nhn?code=%06d' % code
+        date_in_a_page = 15
 
-        first_page = int(((current_date - from_date).days) / 10) + 1
-        last_page = int(((current_date - to_date).days) / 10) + 1
+        first_page = int(((current_date - from_date).days) / date_in_a_page) + 1
+        last_page = int(((current_date - to_date).days) / date_in_a_page) + 1
         print(first_page, last_page)
         for page in range(first_page, last_page + 1):
             page_url = "%s&page=%d" % (url, page)
-            print(page_url)
             page_df = pd.read_html(page_url, header=0)[0]
             page_df.columns = ['date', 'closing', 'comparison', 'starting', 'high', 'low', 'amount']
+            print("%s [%3d/%3d]" % (page_url, len(page_df), date_in_a_page))
             page_df.dropna(inplace=True)
             page_df['date'] = pd.to_datetime(page_df['date'], format='%Y.%m.%d', errors='ignore')
             df = df.append(page_df, ignore_index=True)
