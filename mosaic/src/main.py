@@ -79,22 +79,24 @@ class MosaicGenerator:
         # log.debug(f"{self.__source_image_dir_path}, {self.__target_image_path}")
         self.__workspace = os.path.dirname(os.path.abspath(__file__)) + "/workspace"
 
-        self.__max_source_image = 200
+        self.__max_source_image = 500
 
         self.__width_count = 100
         self.__height_count = 100
 
-        self.__max_usage_count_for_single_image = int((self.__width_count * self.__height_count) / self.__max_source_image) + 5
+        self.__max_usage_count_for_single_image = int((self.__width_count * self.__height_count) / self.__max_source_image) + 25
 
         self.__window_width_px = 100
         self.__window_height_px = 100
+
+        self.__max_dist = (255**2) * 3
+
         self.__init_dir()
         self.__reuse = reuse
         self.__extention = 'jpg'
 
     def __del__(self):
-        if not self.__reuse:
-            self.__clean()
+        pass
 
     def __init_dir(self):
         os.makedirs(self.__workspace, exist_ok=True)
@@ -108,8 +110,12 @@ class MosaicGenerator:
         if len(file_list) > 0 and self.__reuse:
             for f in file_list:
                 img = cv2.imread(f)
+                log.debug(f"{img.shape}")
                 img_list.append(img)
             return img_list
+        
+        self.__clean()
+        self.__init_dir()
 
         file_list = glob.glob(f"{self.__source_image_dir_path}/*.{self.__extention}")
         if len(file_list) > self.__max_source_image:
@@ -121,7 +127,7 @@ class MosaicGenerator:
             # log.debug(f"{self.__source_image_dir_path}/{os.path.basename(f)}")
             img = cv2.imread(f"{self.__source_image_dir_path}/{f}")
             log.debug(f"{f}, [{self.__window_height_px}, {self.__window_width_px}]")
-            img = cv2.resize(img, (self.__window_height_px, self.__window_width_px), interpolation=cv2.INTER_CUBIC)
+            img = cv2.resize(img, (self.__window_width_px, self.__window_height_px), interpolation=cv2.INTER_CUBIC)
             cv2.imwrite(f"{self.__workspace}/{f}", img)
             img_list.append(img)
 
@@ -155,7 +161,7 @@ class MosaicGenerator:
                 x2 = x1 + self.__window_width_px
                 y1 = y * self.__window_height_px
                 y2 = y1 + self.__window_height_px
-                roi = target_img[x1:x2, y1:y2]
+                roi = target_img[y1:y2, x1:x2]
                 # log.debug(f"{x1}, {x2}, {y1}, {y2}")
                 if x2-x1 <=0 or y2-y1 <= 0:
                     break
@@ -165,67 +171,61 @@ class MosaicGenerator:
                 # log.debug(f"{x1}, {x2}, {y1}, {y2}")
                 # log.debug(f"{result_img[x1:x2, y1:y2].shape}, {result_img.shape}")
                 try:
-                    result_img[x1:x2, y1:y2] = simg
+                    result_img[y1:y2, x1:x2] = simg
                 except ValueError as e:
                     log.error(f"{e}")
                     break
                 printProgress(y*self.__width_count+x, self.__height_count * self.__width_count, 'Progress:', 'Complete', 1, 50)
+        print("")
 
         log.info("DONE")
         cv2.imwrite(output_file_name, result_img)
-        cv2.imshow('img', result_img)
+        # cv2.imshow('img', result_img)
         cv2.waitKey(0)
         return 
+
+    def __get_dist(self, rgb1, rgb2):
+        dist = 0
+        for i in range(0, 3):
+            dist += (rgb1[i] - rgb2[i])**2
+        return dist
     
     def __get_img_with_rgb(self, rgb):
-        # log.debug(self.__img_df)
-        df = self.__img_df[self.__img_df['count'] < self.__max_usage_count_for_single_image]
-        dfk = df.sub(pd.Series(rgb, index=['r','g','b']))
+        min_dist = self.__max_dist
+        min_idx = -1
 
-        df = df.assign(
-            r=dfk['r'],
-            g=dfk['g'],
-            b=dfk['b']
-        )
-        
-        df_t = df.apply(lambda x: pd.Series(
-                [x['r']**2 + x['g']**2 + x['b']**2, x['gidx']], index=['dist', 'gidx']
-            ), axis=1)
-        df_t = df_t.sort_values(by=['dist', 'gidx'], axis=0)
-        # log.debug(df_t)
-        id = df_t.iloc[0]['gidx']
-        target = df.loc[df['gidx'] == id]
-        self.__img_df['count'] = self.__img_df.apply(lambda x: x['count']+1 if x['gidx'] == id else x['count'], axis=1)
-        return target['img'].item()
-        
+        for idx, dl in enumerate(self.__dl):
+            if dl['count'] >= self.__max_usage_count_for_single_image:
+                continue
+            dist = self.__get_dist(dl['rgb'], rgb)
 
+            if min_dist > dist:
+                min_idx = idx
+                min_dist = dist
+        self.__dl[min_idx]['count'] += 1
+        return self.__dl[min_idx]['img']
+        
     def __build_source_image_table(self, image_list):
-        dl = list()
+        self.__dl = list()
 
         for idx, img in enumerate(image_list):
             rgb = img.mean(axis=0).mean(axis=0)
-            dl.append(dict(
+            self.__dl.append(dict(
                 gidx=idx,
-                r=rgb[0],
-                g=rgb[1],
-                b=rgb[2],
+                rgb=rgb,
                 count=0,
                 img=img
             ))
-        
-        self.__img_df = pd.DataFrame(dl)
-         
-
 
 
 if __name__ == "__main__":
     set_logger()
     source_image_dir_path, target_image_path = parse_args(sys.argv[1:])
-    mg = MosaicGenerator(source_image_dir_path, target_image_path, reuse=True)
+    mg = MosaicGenerator(source_image_dir_path, target_image_path, reuse=False)
     s = time()
     mg.run(datetime.now().strftime("result %Y-%m-%d %H%M%S") + '.jpg')
     e = time()
     log.info(f"etime: {(e-s):.3f} seconds")
 
 
-# python main.py -s Y:/homes/dahoon/Drive/Camera -t Y:/homes/dahoon/Drive/Camera/20210530_203406.jpg
+# python main.py -s Y:/homes/dahoon/Drive/Camera -t Y:/homes/dahoon/Drive/Camera/20180925_131439.jpg
